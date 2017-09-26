@@ -119,11 +119,35 @@ class FCViewController: UIViewController, UINavigationControllerDelegate {
     // MARK: Remote Config
     
     func configureRemoteConfig() {
-        // TODO: configure remote configuration settings
+        // create remote config setting to enable developer mode
+        let remoteConfigSettings = RemoteConfigSettings(developerModeEnabled: true)
+        remoteConfig = RemoteConfig.remoteConfig()
+        remoteConfig.configSettings = remoteConfigSettings!
     }
     
     func fetchConfig() {
-        // TODO: update to the current coniguratation
+        var expirationDuration: Double = 3600
+        
+        // if developer mode, set the expiration to 0
+        if remoteConfig.configSettings.isDeveloperModeEnabled {
+            expirationDuration = 0
+        }
+        
+        // fetch config
+        remoteConfig.fetch(withExpirationDuration: expirationDuration) { (status, error) in
+            if status == .success {
+                print("config fetched")
+                self.remoteConfig.activateFetched()
+                let friendlyMsgLength = self.remoteConfig["friendly_msg_lenght"]
+                if friendlyMsgLength.source != .static {
+                    self.msglength = friendlyMsgLength.numberValue!
+                    print("find msg length config: \(self.msglength)")
+                }
+            } else {
+                print("config not fetched")
+                print("error: \(error)")
+            }
+        }
     }
     
     // MARK: Sign In and Out
@@ -147,6 +171,8 @@ class FCViewController: UIViewController, UINavigationControllerDelegate {
             // Set up app to send and receive messages when signed in
             configureDatabase()
             configureStorage()
+            configureRemoteConfig()
+            fetchConfig()
         }
     }
     
@@ -330,7 +356,7 @@ extension FCViewController: UITableViewDelegate, UITableViewDataSource {
     
     func showImageDisplay(_ image: UIImage) {
         dismissImageRecognizer.isEnabled = true
-        dismissKeyboardRecognizer.isEnabled = false
+        //dismissKeyboardRecognizer.isEnabled = false
         messageTextField.isEnabled = false
         UIView.animate(withDuration: 0.25) {
             self.backgroundBlur.effect = UIBlurEffect(style: .light)
@@ -343,7 +369,7 @@ extension FCViewController: UITableViewDelegate, UITableViewDataSource {
     
     func showImageDisplay(image: UIImage) {
         dismissImageRecognizer.isEnabled = true
-        dismissKeyboardRecognizer.isEnabled = false
+        //dismissKeyboardRecognizer.isEnabled = false
         messageTextField.isEnabled = false
         UIView.animate(withDuration: 0.25) {
             self.backgroundBlur.effect = UIBlurEffect(style: .light)
